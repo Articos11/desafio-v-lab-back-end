@@ -1,9 +1,12 @@
 import { createMaterial, findMaterialById, findMaterials } from "../models/Material.js";
+import { createBook } from "../models/Book.js";
+import { createVideo } from "../models/Video.js";
+import { createArticle } from "../models/Article.js";
 
 export const registerMaterial = async (req, res) =>{
     try {
         // Recebemos os dados do material e checamos se eles são válidos.
-        const {title, description, status, author_id, material_type} = req.body;
+        const {title, description, status, author_id, material_type, extra} = req.body;
         const user_id = req.userId;
 
         // Como a descrição é opcional, ela não é cobrada nesse if.
@@ -14,6 +17,25 @@ export const registerMaterial = async (req, res) =>{
         
         // Criação da ID do material.
         const materialId = await createMaterial({title, description, status, author_id, user_id, material_type});
+
+        // Inserindo o material em seu respectivo banco de dados.
+        // Checamos se o material (livro, artigo ou video)foi devidamente enviado e o registramos na sua própria tabela.
+        let extraId = null;
+        try {
+            if (material_type === "book") {
+                const {isbn, pages} = extra || {};
+                extraId = await createBook(materialId, isbn, pages);
+            } else if (material_type === "article"){
+                const {doi} = extra || {};
+                extraId = await createArticle(materialId, doi);
+            } else if (material_type === "video") {
+                const {duration_minutes} = extra || {};
+                extraId = await createVideo(materialId, duration_minutes);
+            }
+        } catch (error) {
+            console.error("erro de validação: ", error);
+            return res.status(400).json({message: error});
+        }
 
         res.status(201).json({message: "Material cadastrado com sucesso.", materialId});
 
