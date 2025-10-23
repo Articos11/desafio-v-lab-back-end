@@ -1,7 +1,9 @@
-import { createMaterial, findMaterialById, findMaterials } from "../models/Material.js";
+import { createMaterial, findMaterialById, findMaterials, updateMaterialById, deleteMaterialById } from "../models/Material.js";
+import { findAuthorById } from "../models/Author.js";
 import { createBook } from "../models/Book.js";
 import { createVideo } from "../models/Video.js";
 import { createArticle } from "../models/Article.js";
+import connection  from "../config/database.js";
 
 export const registerMaterial = async (req, res) =>{
     try {
@@ -57,6 +59,85 @@ export const getMaterialById = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({message: "Erro ao buscar por material"})
+    }
+}
+
+// Atualizando o material.
+export const updateMaterial = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, description, status, author_id} = req.body;
+        const user_id = req.userId;
+
+        // Checando se o material existe 
+        const material = await findMaterialById(id);
+        if(!material) return res.status(404).json({message: "Material não encontrado"});
+
+        // Impede outro usuário de alterar os materiais.
+        if (material.user_id !== user_id) return res.status(403).json({message: "Apenas o criador pode alterar este material."})
+
+        // Campos obrigatórios
+        if (!title && !description && !status && !author_id) return res.status(400).json({message: "Nenhum campo válido para atualização"})
+
+        // Verifica se o autor existe. 
+        if (author_id){
+            const authorExists = await findAuthorById(author_id);
+            if(!authorExists)  return res.status(400).json({message: "Autor informado não existe"});
+        }
+
+        // Validação de status
+        const validStatus = ["rascunho", "publicado", "arquivado"];
+        if (status && !validStatus.includes(status)) return res.status(400).json({message: "Status inválido"});
+
+        const updated = await updateMaterialById(id, {title, description, status, author_id});
+
+        if (!updated) return res.status(500).json({message: "Erro ao atualizar material."});
+
+        res.json({message: "Material atualizado com sucesso."});
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({message: "Erro interno ao atualizar material."})
+    }
+}
+
+// Deletando o material. 
+export const deleteMaterial = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user_id = req.userId;
+
+        // O material existe?
+        const material = await findMaterialById(id);
+        if(!material) return res.status(404).json({message: "O material não existe"});
+
+        // Só o usuário criador pode deletar suas criações.
+        if (material.user_id !== user_id) return res.status(403).json({message: "Apenas o criador pode deletar esse material."});
+
+        // Atualizando os respectivos bancos de dados (book, article e videos)
+        await connection.beginTransaction();
+        if (material.material_type === "book") {
+            await connection.query("DELETE FROM books WHERE id = ?", [id]);
+        } else if (material.material_type === "article") {
+            await connection.query("DELETE FROM articles WHERE id = ?", [id]);
+        } else if (material.material_type === "video") {
+            await connection.query("DELETE FROM videos WHERE id = ?", [id]);
+        } else {
+            await connection.rollback();
+            return res.status(400).json({ message: "Tipo de material inválido." });
+        }
+
+        // Deleta o material.
+        const deleted = await deleteMaterialById(id);
+
+        if(!deleted) return res.status(500).json({message: "Erro ao excluir material"});
+
+        res.json({message: "Material excluído com sucesso."});
+
+    } catch (error) {
+        console.error(error);
+        await connection.rollback();
+        res.stats(500).json({message: "Erro interno ao excluir material"});
     }
 }
 

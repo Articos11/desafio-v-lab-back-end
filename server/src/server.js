@@ -23,6 +23,8 @@ app.use("/api", Material);
 app.use("/api", Author);
 
 
+export default app;
+
 // O servidor só irá ser conectado se a base de dados for conectada primeiro.
 connection.connect().then(() => {
     app.listen(PORT, () => console.log(`Servidor conectado e funcionando na porta: localhost:${PORT}`));

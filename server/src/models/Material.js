@@ -36,6 +36,11 @@ export const updateMaterialById = async(id, fields) => {
     return result.affectedRows > 0;
 };
 
+// Deletando o material.
+export const deleteMaterialById = async (id) => {
+    const [result] = await db.query("DELETE FROM materials WHERE id = ?", [id]);
+    return result.affectedRows > 0;
+};
 
 // Busca o material por filtro e paginação. 
 export const findMaterials = async (filters = {}, page = 1, limit = 10) => {

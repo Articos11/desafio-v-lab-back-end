@@ -15,4 +15,4 @@ try {
     console.error("Erro ao conectar com a base de dados", err.message);
 }
 
-export default connection; 
+export default connection;
