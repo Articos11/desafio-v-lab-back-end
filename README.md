@@ -17,7 +17,7 @@ O projeto foi amplamente testado utilizando o ThunderClient (extensão do Vscode
 
 # Organização do projeto:
 
-1. O projeto foi criado unicamente em formato backend, sem um frontend para consumi-lo por falta de tempo. 
+1. O projeto foi criado unicamente em formato backend.
 
     * A estrutura de pastas foi pensada para facilitar o acesso a determinados arquivos para futuras manutenções do projeto.
 
